@@ -8,7 +8,7 @@
 	"description": "Changes GD's window name.",
 	"early-load": true,
 	"settings": {
-		"winname": {
+		"windowname": {
 			"name": "Window Name",
 			"type": "string",
 			"default": "Geometry Dash"
