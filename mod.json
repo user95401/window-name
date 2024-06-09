@@ -1,15 +1,15 @@
 {
-	"geode": "2.0.0-beta.20",
+	"geode": "2.0.0-beta.27",
 	"gd": "2.204",
 	"version": "v1.0.0",
 	"id": "user95401.window-name",
-	"name": "window-name",
+	"name": "Window Name",
 	"developer": "user95401",
-	"description": "window-name",
+	"description": "Changes GD's window name.",
 	"early-load": true,
 	"settings": {
-		"winname": {
-			"name": "Window name",
+		"windowname": {
+			"name": "Window Name",
 			"type": "string",
 			"default": "Geometry Dash"
 		}
