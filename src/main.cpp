@@ -1,63 +1,70 @@
 #include <Geode/Geode.hpp>
-#include <Geode/loader/SettingEvent.hpp>
 #include <Geode/modify/LoadingLayer.hpp>
 #include <Geode/modify/AppDelegate.hpp>
 #include <windows.h>
 
 using namespace geode::prelude;
 
-class $modify(LoadingLayer) {
+bool fileExists(const std::wstring& path) {
+    DWORD attrs = GetFileAttributesW(path.c_str());
+    return (attrs != INVALID_FILE_ATTRIBUTES) && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
+}
+
+void copyFile(const std::wstring& from, const std::wstring& to) {
+    (void)CopyFileW(from.c_str(), to.c_str(), FALSE);
+}
+
+void CopyFromLocal() {
+    std::wstring gameDir = Mod::get()->getConfigDir().wstring() + L"\\settings.json";
+    std::wstring saveDir = Mod::get()->getSaveDir().wstring() + L"\\settings.json";
+
+    if (!fileExists(gameDir))
+        return;
+
+    copyFile(gameDir, saveDir);
+}
+
+void CopyFromData() {
+    std::wstring gameDir = Mod::get()->getConfigDir().wstring() + L"\\settings.json";
+    std::wstring saveDir = Mod::get()->getSaveDir().wstring() + L"\\settings.json";
+
+    if (!fileExists(saveDir))
+        return;
+
+    copyFile(saveDir, gameDir);
+}
+
+void updateWindowTitle() {
+    HWND hwnd = GetActiveWindow();
+    if (hwnd) {
+        std::string name = Mod::get()->getSettingValue<std::string>("windowname");
+        SetWindowTextA(hwnd, name.c_str());
+    }
+}
+
+class $modify(MyLoadingLayer, LoadingLayer) {
     bool init(bool p0) {
-        if (!LoadingLayer::init(p0)) return false;
+        if (!LoadingLayer::init(p0))
+            return false;
 
-        auto GameWindowHandle = WindowFromDC(*reinterpret_cast<HDC*>(
-            reinterpret_cast<uintptr_t>(cocos2d::CCEGLView::sharedOpenGLView()->getWindow()) + 0x244));
-        SetWindowText(GameWindowHandle, Mod::get()->getSettingValue<std::string>("windowname").c_str());
-
-        geode::listenForSettingChanges("windowname", +[](std::string value) {
-            auto GameWindowHandle = WindowFromDC(*reinterpret_cast<HDC*>(
-                reinterpret_cast<uintptr_t>(cocos2d::CCEGLView::sharedOpenGLView()->getWindow()) + 0x244));
-            SetWindowText(GameWindowHandle, value.data());
-        });
-
+        updateWindowTitle();
         return true;
     }
 };
 
-void CopyFromLocal() {
-    auto game_dir = Mod::get()->getConfigDir() / "settings.json";
-    auto save_dir = Mod::get()->getSaveDir() / "settings.json";
-
-    if (!ghc::filesystem::exists(game_dir)) return;
-
-    ghc::filesystem::copy(
-        game_dir,
-        save_dir,
-        ghc::filesystem::copy_options::overwrite_existing
-    );
-}
-
-void CopyFromData() {
-    auto game_dir = Mod::get()->getConfigDir() / "settings.json";
-    auto save_dir = Mod::get()->getSaveDir() / "settings.json";
-
-    if (!ghc::filesystem::exists(save_dir)) return;
-
-    ghc::filesystem::copy(
-        save_dir,
-        game_dir,
-        ghc::filesystem::copy_options::overwrite_existing
-    );
-}
-
 $on_mod(Loaded) {
-    CopyFromLocal();
-    Mod::get()->loadData();
+    (void)CopyFromLocal();
+
+    (void)Mod::get()->loadData();
+
+    geode::listenForSettingChanges("windowname", [](std::string) {
+        updateWindowTitle();
+    });
 }
 
-class $modify(AppDelegate) {
+class $modify(MyAppDelegate, AppDelegate) {
     void trySaveGame(bool p0) {
         AppDelegate::trySaveGame(p0);
-        CopyFromData();
+        (void)CopyFromData();
     }
 };
